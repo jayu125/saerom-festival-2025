@@ -1,38 +1,3 @@
-<<<<<<< HEAD
-"use client"
-
-import { useState, useEffect } from "react"
-import { useAuth } from "@/contexts/auth-context"
-import { collection, getDocs, query, orderBy } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import type { Booth } from "@/lib/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Check, HelpCircle, Loader2, Users } from "lucide-react"
-import { QuizDialog } from "@/components/quiz-dialog"
-
-export function BoothPage() {
-  const { userProfile } = useAuth()
-  const [booths, setBooths] = useState<Booth[]>([])
-  const [visitedBooths, setVisitedBooths] = useState<Set<string>>(new Set())
-  const [quizCompleted, setQuizCompleted] = useState<Set<string>>(new Set())
-  const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null)
-  const [isQuizOpen, setIsQuizOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  const floors = booths.length > 0 ? ["all", ...Array.from(new Set(booths.map((b) => b.floor))).sort()] : ["all"]
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userProfile) return
-
-      try {
-        const boothsQuery = query(collection(db, "booths"), orderBy("visitCount", "desc"))
-        const boothsSnapshot = await getDocs(boothsQuery)
-        const boothsData: Booth[] = []
-=======
 "use client";
 
 import { useState, useEffect } from "react";
@@ -79,57 +44,10 @@ export function BoothPage() {
         );
         const boothsSnapshot = await getDocs(boothsQuery);
         const boothsData: Booth[] = [];
->>>>>>> d85b76e (init: clean start)
         boothsSnapshot.forEach((doc) => {
           boothsData.push({
             id: doc.id,
             ...doc.data(),
-<<<<<<< HEAD
-          } as Booth)
-        })
-        setBooths(boothsData)
-
-        // 방문한 부스 목록 가져오기
-        const visitsSnapshot = await getDocs(collection(db, "users", userProfile.uid, "boothVisits"))
-        const visited = new Set<string>()
-        visitsSnapshot.forEach((doc) => {
-          visited.add(doc.id)
-        })
-        setVisitedBooths(visited)
-
-        // 퀴즈 완료한 부스 목록 가져오기
-        const quizSnapshot = await getDocs(collection(db, "users", userProfile.uid, "quizRewards"))
-        const completed = new Set<string>()
-        quizSnapshot.forEach((doc) => {
-          completed.add(doc.id)
-        })
-        setQuizCompleted(completed)
-      } catch (error) {
-        console.error("데이터 로드 실패:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [userProfile])
-
-  const handleQuizClick = (booth: Booth) => {
-    setSelectedBooth(booth)
-    setIsQuizOpen(true)
-  }
-
-  const handleQuizComplete = (boothId: string) => {
-    setQuizCompleted((prev) => new Set([...prev, boothId]))
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    )
-=======
           } as Booth);
         });
         setBooths(boothsData);
@@ -176,29 +94,10 @@ export function BoothPage() {
         <Loader2 />
       </LoaderWrap>
     );
->>>>>>> d85b76e (init: clean start)
   }
 
   if (booths.length === 0) {
     return (
-<<<<<<< HEAD
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-2">부스 안내</h1>
-        <p className="text-muted-foreground">아직 등록된 부스가 없습니다.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="p-4 space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">부스 안내</h1>
-        <p className="text-muted-foreground text-sm">층별 부스를 확인하고 NFC로 방문하세요 (인기순 정렬)</p>
-      </div>
-
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="w-full grid grid-cols-5">
-=======
       <Page>
         <EmptyTitle>부스 안내</EmptyTitle>
         <EmptyDesc>아직 등록된 부스가 없습니다.</EmptyDesc>
@@ -208,58 +107,18 @@ export function BoothPage() {
 
   return (
     <Page>
-      <HeaderBlock>
+      <Header>
         <Title>부스 안내</Title>
-        <Subtitle>층별 부스를 확인하고 NFC로 방문하세요 (인기순 정렬)</Subtitle>
-      </HeaderBlock>
+        <Subtitle>층별 부스를 확인하고 NFC로 방문하세요</Subtitle>
+      </Header>
 
       <Tabs defaultValue="all" className="w-full">
         <StyledTabsList>
->>>>>>> d85b76e (init: clean start)
           <TabsTrigger value="all">전체</TabsTrigger>
           <TabsTrigger value="1">1층</TabsTrigger>
           <TabsTrigger value="2">2층</TabsTrigger>
           <TabsTrigger value="3">3층</TabsTrigger>
           <TabsTrigger value="4">4층</TabsTrigger>
-<<<<<<< HEAD
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-3 mt-4">
-          {booths.map((booth) => {
-            const isVisited = visitedBooths.has(booth.boothIdx.toString())
-            const isQuizDone = quizCompleted.has(booth.boothIdx.toString())
-
-            return (
-              <Card key={booth.id} className={isVisited ? "border-primary/30 bg-primary/5" : ""}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {booth.name}
-                        {isVisited && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Check className="w-3 h-3 mr-1" />
-                            방문완료
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <MapPin className="w-3 h-3" />
-                        {booth.location}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Users className="w-3 h-3" />
-                      {booth.visitCount}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{booth.description}</p>
-
-                  {isVisited && booth.quiz && (
-                    <Button
-=======
         </StyledTabsList>
 
         <StyledTabsContent value="all">
@@ -300,67 +159,10 @@ export function BoothPage() {
 
                   {isVisited && booth.quiz && (
                     <FullButton
->>>>>>> d85b76e (init: clean start)
                       variant={isQuizDone ? "secondary" : "default"}
                       size="sm"
                       onClick={() => handleQuizClick(booth)}
                       disabled={isQuizDone}
-<<<<<<< HEAD
-                      className="w-full"
-                    >
-                      <HelpCircle className="w-4 h-4 mr-2" />
-                      {isQuizDone ? "퀴즈 완료" : "퀴즈 풀기 (+10 마일리지)"}
-                    </Button>
-                  )}
-
-                  {!isVisited && (
-                    <p className="text-xs text-center text-muted-foreground py-2">NFC 태그를 스캔하여 방문하세요</p>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
-        </TabsContent>
-
-        {[1, 2, 3, 4].map((floor) => (
-          <TabsContent key={floor} value={floor.toString()} className="space-y-3 mt-4">
-            {booths
-              .filter((booth) => booth.floor === floor)
-              .map((booth) => {
-                const isVisited = visitedBooths.has(booth.boothIdx.toString())
-                const isQuizDone = quizCompleted.has(booth.boothIdx.toString())
-
-                return (
-                  <Card key={booth.id} className={isVisited ? "border-primary/30 bg-primary/5" : ""}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            {booth.name}
-                            {isVisited && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Check className="w-3 h-3 mr-1" />
-                                방문완료
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-1 mt-1">
-                            <MapPin className="w-3 h-3" />
-                            {booth.location}
-                          </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Users className="w-3 h-3" />
-                          {booth.visitCount}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-3">{booth.description}</p>
-
-                      {isVisited && booth.quiz && (
-                        <Button
-=======
                     >
                       <IconSM as={HelpCircle} />
                       {isQuizDone ? "퀴즈 완료" : "퀴즈 풀기 (+10 마일리지)"}
@@ -417,28 +219,10 @@ export function BoothPage() {
 
                       {isVisited && booth.quiz && (
                         <FullButton
->>>>>>> d85b76e (init: clean start)
                           variant={isQuizDone ? "secondary" : "default"}
                           size="sm"
                           onClick={() => handleQuizClick(booth)}
                           disabled={isQuizDone}
-<<<<<<< HEAD
-                          className="w-full"
-                        >
-                          <HelpCircle className="w-4 h-4 mr-2" />
-                          {isQuizDone ? "퀴즈 완료" : "퀴즈 풀기 (+10 마일리지)"}
-                        </Button>
-                      )}
-
-                      {!isVisited && (
-                        <p className="text-xs text-center text-muted-foreground py-2">NFC 태그를 스캔하여 방문하세요</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })}
-          </TabsContent>
-=======
                         >
                           <IconSM as={HelpCircle} />
                           {isQuizDone
@@ -455,7 +239,6 @@ export function BoothPage() {
                 );
               })}
           </StyledTabsContent>
->>>>>>> d85b76e (init: clean start)
         ))}
       </Tabs>
 
@@ -467,11 +250,6 @@ export function BoothPage() {
           onComplete={handleQuizComplete}
         />
       )}
-<<<<<<< HEAD
-    </div>
-  )
-}
-=======
     </Page>
   );
 }
@@ -485,7 +263,7 @@ const Page = styled.div`
   gap: 1rem;
 `;
 
-const HeaderBlock = styled.div``;
+const Header = styled.div``;
 
 const Title = styled.h1`
   font-size: 1.5rem;
@@ -529,9 +307,13 @@ const EmptyDesc = styled.p`
 `;
 
 const StyledTabsList = styled(TabsList)`
-  width: 100%;
+  height: 300px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  position: fixed;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 35px;
 `;
 
 const StyledTabsContent = styled(TabsContent)`
@@ -539,6 +321,7 @@ const StyledTabsContent = styled(TabsContent)`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  margin-left: 50px;
 `;
 
 const BoothCard = styled(Card)<{ $visited: boolean }>`
@@ -631,4 +414,3 @@ const IconSM = styled.span`
     height: 1rem;
   }
 `;
->>>>>>> d85b76e (init: clean start)

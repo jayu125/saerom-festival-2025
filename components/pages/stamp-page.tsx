@@ -17,11 +17,11 @@ import { Stamp, Check, Lock, Loader2 } from "lucide-react";
 
 // 부스 ID와 이름 매핑 (실제로는 Firestore에서 가져옴)
 const boothInfo: Record<string, string> = {
-  "1": "포토존",
-  "2": "먹거리 부스",
-  "3": "게임존",
-  "4": "체험 부스",
-  "5": "전시관",
+  "1": "첫 번째",
+  "2": "두 번째",
+  "3": "세 번째",
+  "4": "네 번째",
+  "5": "다섯 번째",
 };
 
 const totalBooths = Object.keys(boothInfo).length;
