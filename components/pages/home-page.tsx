@@ -61,7 +61,7 @@ export function HomePage() {
       {/* Header */}
       <HeaderRow>
         <div>
-          <Title>새롬 축제</Title>
+          <Title>새롬고연말축제</Title>
           <Subtitle>
             {userProfile.grade}학년 {userProfile.class}반 {userProfile.name}
           </Subtitle>
@@ -89,7 +89,7 @@ export function HomePage() {
 
               {userProfile.multiplier > 1 && (
                 <PrimaryBadge variant="secondary">
-                  x{userProfile.multiplier.toFixed(1)} 적용
+                  배수 x{userProfile.multiplier.toFixed(1)} 적용
                 </PrimaryBadge>
               )}
             </RowGap>
@@ -205,8 +205,8 @@ export function HomePage() {
             <Step>
               <StepNum>3</StepNum>
               <StepBody>
-                <StepTitle>스탬프 수집</StepTitle>
-                <StepDesc>모든 부스를 방문하여 스탬프를 모아보세요!</StepDesc>
+                <StepTitle>마일리지가 획득이 안 된 것 같다?</StepTitle>
+                <StepDesc>새로고침하여 적용</StepDesc>
               </StepBody>
             </Step>
           </StepList>
@@ -232,13 +232,14 @@ const HeaderRow = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 1.65rem;
+  font-weight: 800;
 `;
 
 const Subtitle = styled.p`
-  font-size: 14px;
-  color: var(--muted-foreground);
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.3);
 `;
 
 const HeaderIconWrap = styled.div`
@@ -342,6 +343,9 @@ const MileageValue = styled.p`
 
 const RightBox = styled.div`
   text-align: right;
+  align-items: center;
+  display: flex;
+  gap: 4px;
 `;
 
 const AccentRow = styled.div`

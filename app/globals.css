@@ -1,3 +1,4 @@
+@import url(`https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css`);
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -15,7 +16,7 @@
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.95 0.02 90);
   --secondary-foreground: oklch(0.3 0.02 250);
-  --muted: oklch(0.96 0.01 90);
+  --muted: oklch(94.007% 0.00011 271.152);
   --muted-foreground: oklch(0.5 0.02 250);
   --accent: oklch(0.75 0.15 80);
   --accent-foreground: oklch(0.2 0.02 250);
@@ -76,7 +77,10 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback", sans-serif;
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue",
+    "Segoe UI" "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);

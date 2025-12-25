@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -6,7 +7,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
- 
-}
+  compiler: {
+    styledComponents: true,
+  },
+};
 
-export default nextConfig
+export default nextConfig;

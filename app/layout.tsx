@@ -1,35 +1,20 @@
-import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { AuthProvider } from "@/contexts/auth-context"
-import "./globals.css"
+import type React from "react";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { AuthProvider } from "@/contexts/auth-context";
+import { LiveVoteGate } from "@/components/live-vote/liveVoteGage";
+import "./globals.css";
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const _geist = Geist({ subsets: ["latin"] });
+const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "새롬 축제 - NFC 스마트 축제",
-  description: "NFC 태깅으로 즐기는 새롬고 축제! 부스 방문, 스탬프 수집, 퀴즈 참여로 마일리지를 적립하세요.",
+  description:
+    "NFC 태깅으로 즐기는 새롬고 축제! 부스 방문, 퀴즈 참여로 마일리지를 적립하세요.",
   generator: "v0.app",
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-  },
-}
+};
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -37,19 +22,21 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#e85d4c",
-}
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <body className="font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          {/* ✅ 관리자 라우트에서는 자동으로 숨김 */}
+          <LiveVoteGate />
+        </AuthProvider>
         <Analytics />
       </body>
     </html>
-  )
+  );
 }

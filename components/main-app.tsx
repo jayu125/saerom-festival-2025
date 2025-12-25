@@ -1,29 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useAuth } from "@/contexts/auth-context"
-import { BottomNavigation } from "@/components/bottom-navigation"
-import { HomePage } from "@/components/pages/home-page"
-import { BoothPage } from "@/components/pages/booth-page"
-import { StampPage } from "@/components/pages/stamp-page"
-import { ProfilePage } from "@/components/pages/profile-page"
+import { useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { BottomNavigation } from "@/components/bottom-navigation";
+import { HomePage } from "@/components/pages/home-page";
+import { BoothPage } from "@/components/pages/booth-page";
+import { StampPage } from "@/components/pages/stamp-page";
+import { ProfilePage } from "@/components/pages/profile-page";
+import { RankingPage } from "./pages/ranking-page";
 
-export type TabType = "home" | "booth" | "stamp" | "profile"
+export type TabType = "home" | "booth" | "stamp" | "profile" | "ranking";
 
 export function MainApp() {
-  const [activeTab, setActiveTab] = useState<TabType>("home")
-  const { userProfile } = useAuth()
+  const [activeTab, setActiveTab] = useState<TabType>("home");
+  const { userProfile } = useAuth();
 
-  if (!userProfile) return null
+  if (!userProfile) return null;
 
   return (
     <div className="min-h-screen bg-background pb-20">
       {activeTab === "home" && <HomePage />}
       {activeTab === "booth" && <BoothPage />}
-      {activeTab === "stamp" && <StampPage />}
+      {/* {activeTab === "stamp" && <StampPage />} */}
+      {activeTab === "ranking" && <RankingPage />}
       {activeTab === "profile" && <ProfilePage />}
 
       <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
-  )
+  );
 }

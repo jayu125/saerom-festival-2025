@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import { useAuth } from "@/contexts/auth-context"
-import { LoginScreen } from "@/components/login-screen"
-import { MainApp } from "@/components/main-app"
-import { Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context";
+import { LoginScreen } from "@/components/login-screen";
+import { MainApp } from "@/components/main-app";
+import { Loader2 } from "lucide-react";
+import { InvalidStudentScreen } from "@/components/invaild-student-scree ";
 
 export default function Home() {
-  const { user, loading } = useAuth()
+  const { user, loading, invalidStudent } = useAuth();
 
   if (loading) {
     return (
@@ -16,12 +17,14 @@ export default function Home() {
           <p className="text-muted-foreground">로딩 중...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
-    return <LoginScreen />
+    return <LoginScreen />;
   }
 
-  return <MainApp />
+  if (invalidStudent) return <InvalidStudentScreen />;
+
+  return <MainApp />;
 }

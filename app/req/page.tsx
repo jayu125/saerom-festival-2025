@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -9,6 +9,10 @@ import {
   setDoc,
   serverTimestamp,
   increment,
+  collection,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -27,21 +31,19 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { LoginScreen } from "@/components/login-screen";
-import { useRef } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
 
 function NFCHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, updateUserProfile } = useAuth();
+
   const [status, setStatus] = useState<
     "loading" | "success" | "duplicate" | "error" | "invalid" | "used"
   >("loading");
-  const [debugReason, setDebugReason] = useState<string>("");
-  const [boothName, setBoothName] = useState<string>("");
+  const [boothName, setBoothName] = useState("");
 
   const boothIdx = searchParams.get("boothIdx");
-  const isUsed = searchParams.get("used");
+  const u = searchParams.get("u"); // ✅ 0 / 1
 
   const initialUsedRef = useRef<boolean | null>(null);
   const processedRef = useRef(false);
@@ -49,48 +51,38 @@ function NFCHandler() {
   useEffect(() => {
     if (loading) return;
 
-    // boothIdx 없으면 즉시 invalid
+    // boothIdx 없으면 invalid
     if (!boothIdx) {
-      const reason = "boothIdx query parameter is missing";
-      console.error("[NFC][INVALID]", reason);
-      setDebugReason(reason);
       setStatus("invalid");
       return;
     }
 
-    // 🔒 최초 진입 시 used 상태 고정
+    // 🔒 최초 진입 시 u 값 고정
     if (initialUsedRef.current === null) {
-      initialUsedRef.current = isUsed === "True";
+      initialUsedRef.current = u === "1";
     }
 
-    // ❗ 이미 used=True 상태로 처음 들어온 경우만 차단
+    // ❗ 이미 사용된 URL
     if (initialUsedRef.current) {
-      console.warn("[NFC][USED] URL already used on initial entry", {
-        boothIdx,
-      });
-      setDebugReason("URL entered with used=True");
       setStatus("used");
       return;
     }
 
-    // 중복 실행 방지 (App Router에서 매우 중요)
+    // 중복 실행 방지
     if (processedRef.current) return;
     processedRef.current = true;
 
-    // used=False 먼저 URL에 반영 (처리는 계속)
+    // URL에 u=0 강제 반영 (처리 중)
     {
       const url = new URL(window.location.href);
-      if (!url.searchParams.get("used")) {
-        url.searchParams.set("used", "False");
+      if (!url.searchParams.get("u")) {
+        url.searchParams.set("u", "0");
         window.history.replaceState({}, "", url.toString());
       }
     }
 
     const processVisit = async () => {
       if (!user || !userProfile) {
-        const reason = "user or userProfile not ready";
-        console.warn("[NFC][WAIT]", reason);
-        setDebugReason(reason);
         processedRef.current = false;
         return;
       }
@@ -98,29 +90,25 @@ function NFCHandler() {
       try {
         setStatus("loading");
 
-        // ✅ boothIdx로 query
+        // boothIdx로 booth 조회
         const boothQuery = query(
           collection(db, "booths"),
           where("boothIdx", "==", Number(boothIdx))
         );
         const boothSnapshot = await getDocs(boothQuery);
 
-        if (boothSnapshot.empty) {
-          const reason = `no booth found with boothIdx=${boothIdx}`;
-          console.error("[NFC][INVALID]", reason);
-          setDebugReason(reason);
+        if (boothSnapshot.size !== 1) {
           setStatus("invalid");
           return;
         }
 
-        // booth 문서 (랜덤 ID)
         const boothDoc = boothSnapshot.docs[0];
         const boothData = boothDoc.data();
         const boothDocId = boothDoc.id;
 
         setBoothName(boothData.name);
 
-        // 방문 기록 확인 (boothIdx 기준)
+        // 방문 중복 체크
         const visitRef = doc(
           db,
           "users",
@@ -131,11 +119,9 @@ function NFCHandler() {
         const visitSnap = await getDoc(visitRef);
 
         if (visitSnap.exists()) {
-          console.info("[NFC][DUPLICATE]", { boothIdx });
-          setDebugReason("booth already visited");
           setStatus("duplicate");
         } else {
-          // 방문 기록 생성
+          // 방문 기록
           await setDoc(visitRef, {
             boothIdx: Number(boothIdx),
             boothDocId,
@@ -143,13 +129,14 @@ function NFCHandler() {
             mileageEarned: 100,
           });
 
-          // ✅ visitCount 증가 (랜덤 docId 사용)
+          // booth visitCount 증가
           await setDoc(
             doc(db, "booths", boothDocId),
             { visitCount: increment(1) },
             { merge: true }
           );
 
+          // 유저 마일리지/스탬프
           await setDoc(
             doc(db, "users", userProfile.uid),
             {
@@ -160,6 +147,7 @@ function NFCHandler() {
             { merge: true }
           );
 
+          // 로그
           await setDoc(
             doc(
               db,
@@ -177,78 +165,58 @@ function NFCHandler() {
             }
           );
 
-          console.info("[NFC][SUCCESS]", { boothIdx, boothDocId });
-          setDebugReason("visit processed successfully");
+          await updateUserProfile({
+            baseMileage: (userProfile.baseMileage ?? 0) + 100,
+            stampCount: (userProfile.stampCount ?? 0) + 1,
+          });
+
           setStatus("success");
         }
 
-        // URL만 used=True로 변경 (UI 유지)
+        // ✅ 처리 완료 → u=1
         const url = new URL(window.location.href);
-        url.searchParams.set("used", "True");
+        url.searchParams.set("u", "1");
         window.history.replaceState({}, "", url.toString());
       } catch (err) {
-        console.error("[NFC][ERROR] visit failed", err);
-        setDebugReason(err instanceof Error ? err.message : String(err));
+        console.error("[NFC ERROR]", err);
         setStatus("error");
       }
     };
 
     processVisit();
-  }, [boothIdx, user, userProfile, loading]);
+  }, [boothIdx, u, user, userProfile, loading, updateUserProfile]);
 
-  // 로딩 중
+  // 로딩
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm">
-          <CardContent className="p-8 text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">로딩 중...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
   // 로그인 필요
-  if (!user) {
-    return <LoginScreen />;
-  }
+  if (!user) return <LoginScreen />;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         {status === "loading" && (
           <CardContent className="p-8 text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">부스 방문 처리 중...</p>
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+            <p>부스 방문 처리 중...</p>
           </CardContent>
         )}
 
         {status === "success" && (
           <>
             <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                <CheckCircle className="w-10 h-10 text-green-600" />
-              </div>
-              <CardTitle className="text-xl">방문 완료!</CardTitle>
-              <CardDescription>{boothName}에 방문하셨습니다</CardDescription>
+              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-2" />
+              <CardTitle>방문 완료!</CardTitle>
+              <CardDescription>{boothName} 방문</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-primary/10 rounded-lg text-center">
-                <div className="flex items-center justify-center gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">마일리지</p>
-                    <p className="text-xl font-bold text-primary">+100</p>
-                  </div>
-                  <div className="w-px h-10 bg-border" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">스탬프</p>
-                    <p className="text-xl font-bold text-primary">+1</p>
-                  </div>
-                </div>
-              </div>
-              <Button onClick={() => router.push("/")} className="w-full">
+            <CardContent>
+              <Button className="w-full" onClick={() => router.push("/")}>
                 <PartyPopper className="w-4 h-4 mr-2" />
                 홈으로 이동
               </Button>
@@ -259,28 +227,16 @@ function NFCHandler() {
         {(status === "duplicate" || status === "used") && (
           <>
             <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-2">
-                <AlertTriangle className="w-10 h-10 text-amber-600" />
-              </div>
-              <CardTitle className="text-xl">
-                {status === "duplicate" ? "이미 방문한 부스" : "사용된 URL"}
+              <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-2" />
+              <CardTitle>
+                {status === "duplicate" ? "이미 방문한 부스" : "사용된 NFC"}
               </CardTitle>
-              <CardDescription>
-                {status === "duplicate"
-                  ? `${boothName}은(는) 이미 방문 처리되었습니다`
-                  : "이 URL은 이미 사용되었습니다"}
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-center text-muted-foreground mb-4">
-                {status === "duplicate"
-                  ? "같은 부스는 한 번만 마일리지를 받을 수 있습니다."
-                  : "NFC 태그를 직접 태그해주세요."}
-              </p>
               <Button
-                onClick={() => router.push("/")}
-                className="w-full"
                 variant="outline"
+                className="w-full"
+                onClick={() => router.push("/")}
               >
                 홈으로 이동
               </Button>
@@ -288,47 +244,19 @@ function NFCHandler() {
           </>
         )}
 
-        {status === "invalid" && (
+        {(status === "invalid" || status === "error") && (
           <>
             <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-2">
-                <XCircle className="w-10 h-10 text-red-600" />
-              </div>
-              <CardTitle className="text-xl">잘못된 요청</CardTitle>
-              <CardDescription>유효하지 않은 부스 정보입니다</CardDescription>
+              <XCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+              <CardTitle>처리 실패</CardTitle>
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => router.push("/")}
                 className="w-full"
+                onClick={() => router.push("/")}
                 variant="outline"
               >
                 홈으로 이동
-              </Button>
-            </CardContent>
-          </>
-        )}
-
-        {status === "error" && (
-          <>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-2">
-                <XCircle className="w-10 h-10 text-red-600" />
-              </div>
-              <CardTitle className="text-xl">오류 발생</CardTitle>
-              <CardDescription>
-                방문 처리 중 문제가 발생했습니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-center text-muted-foreground mb-4">
-                잠시 후 다시 시도해주세요.
-              </p>
-              <Button
-                onClick={() => window.location.reload()}
-                className="w-full"
-              >
-                다시 시도
               </Button>
             </CardContent>
           </>
@@ -342,8 +270,8 @@ export default function NFCRequestPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       }
     >

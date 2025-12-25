@@ -1,7 +1,10 @@
 "use client";
 
 import styled from "styled-components";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import {
   Card,
   CardContent,
@@ -12,16 +15,51 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Coins, TrendingUp, LogOut, Trophy } from "lucide-react";
+import {
+  User,
+  Coins,
+  TrendingUp,
+  LogOut,
+  Trophy,
+  Stamp,
+  Loader2,
+} from "lucide-react";
 
 export function ProfilePage() {
   const { userProfile, signOut } = useAuth();
 
+  const [stampLoading, setStampLoading] = useState(true);
+  const [stampCountFromVisits, setStampCountFromVisits] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchStampCount = async () => {
+      if (!userProfile) return;
+      setStampLoading(true);
+
+      try {
+        const visitsSnapshot = await getDocs(
+          collection(db, "users", userProfile.uid, "boothVisits")
+        );
+        setStampCountFromVisits(visitsSnapshot.size);
+      } catch (error) {
+        console.error("스탬프(방문) 데이터 로드 실패:", error);
+        // 실패하면 프로필의 stampCount로 폴백
+        setStampCountFromVisits(userProfile.stampCount ?? 0);
+      } finally {
+        setStampLoading(false);
+      }
+    };
+
+    fetchStampCount();
+  }, [userProfile]);
+
   if (!userProfile) return null;
 
-  const displayMileage = Math.floor(
-    userProfile.baseMileage * userProfile.multiplier
-  );
+  const displayMileage = useMemo(() => {
+    const base = userProfile.baseMileage ?? 0;
+    const mult = userProfile.multiplier ?? 1;
+    return Math.floor(base * mult);
+  }, [userProfile.baseMileage, userProfile.multiplier]);
 
   const handleSignOut = async () => {
     try {
@@ -38,7 +76,7 @@ export function ProfilePage() {
         <Subtitle>계정 및 마일리지 정보</Subtitle>
       </HeaderBlock>
 
-      {/* Profile Card */}
+      {/* 1) Profile Card */}
       <Card>
         <ProfileCardContent>
           <ProfileRow>
@@ -58,34 +96,34 @@ export function ProfilePage() {
         </ProfileCardContent>
       </Card>
 
-      {/* Account Info */}
+      {/* 2) 반 기여도 (기존 4번째 → 2번째로 이동) */}
       <Card>
         <StyledCardHeader>
           <CardTitle>
             <InlineTitle>
               <IconSM>
-                <Mail />
+                <Trophy />
               </IconSM>
-              계정 정보
+              반 기여도
             </InlineTitle>
           </CardTitle>
+          <CardDescription>우승 반 선정에 기여하는 내 마일리지</CardDescription>
         </StyledCardHeader>
 
         <NormalCardContent>
-          <InfoList>
-            <InfoRow>
-              <InfoLabel>이메일</InfoLabel>
-              <InfoValue>{userProfile.email}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>학교</InfoLabel>
-              <InfoValue>새롬고등학교</InfoValue>
-            </InfoRow>
-          </InfoList>
+          <ContributionBox>
+            <ContributionText>
+              {userProfile.grade}학년 {userProfile.class}반에 기여 중
+            </ContributionText>
+            <ContributionValue>
+              {(userProfile.baseMileage ?? 0).toLocaleString()}
+            </ContributionValue>
+            <ContributionHint>(배수 이벤트 마일리지는 제외)</ContributionHint>
+          </ContributionBox>
         </NormalCardContent>
       </Card>
 
-      {/* Mileage Info */}
+      {/* 3) Mileage Info (그대로) */}
       <Card>
         <StyledCardHeader>
           <CardTitle>
@@ -108,13 +146,13 @@ export function ProfilePage() {
               <MileageBig>{displayMileage.toLocaleString()}</MileageBig>
             </MileageTop>
 
-            {userProfile.multiplier > 1 && (
+            {(userProfile.multiplier ?? 1) > 1 && (
               <StyledBadge variant="secondary">
                 <InlineBadge>
                   <IconXS>
                     <TrendingUp />
                   </IconXS>
-                  x{userProfile.multiplier.toFixed(1)} 배수 적용
+                  x{(userProfile.multiplier ?? 1).toFixed(1)} 배수 적용
                 </InlineBadge>
               </StyledBadge>
             )}
@@ -125,44 +163,57 @@ export function ProfilePage() {
           <InfoList>
             <InfoRow>
               <InfoLabel>기본 마일리지</InfoLabel>
-              <InfoValue>{userProfile.baseMileage.toLocaleString()}</InfoValue>
+              <InfoValue>
+                {(userProfile.baseMileage ?? 0).toLocaleString()}
+              </InfoValue>
             </InfoRow>
             <InfoRow>
               <InfoLabel>현재 배수</InfoLabel>
-              <InfoValue>x{userProfile.multiplier.toFixed(1)}</InfoValue>
+              <InfoValue>x{(userProfile.multiplier ?? 1).toFixed(1)}</InfoValue>
             </InfoRow>
             <InfoRow>
               <InfoLabel>스탬프 수</InfoLabel>
-              <InfoValue>{userProfile.stampCount}개</InfoValue>
+              <InfoValue>
+                {(userProfile.stampCount ?? 0).toLocaleString()}개
+              </InfoValue>
             </InfoRow>
           </InfoList>
         </NormalCardContent>
       </Card>
 
-      {/* Class Contribution */}
+      {/* 4) ✅ 맨 아래 “스탬프” 카드 추가 */}
       <Card>
         <StyledCardHeader>
           <CardTitle>
             <InlineTitle>
               <IconSM>
-                <Trophy />
+                <Stamp />
               </IconSM>
-              반 기여도
+              스탬프
             </InlineTitle>
           </CardTitle>
-          <CardDescription>우승 반 선정에 기여하는 내 마일리지</CardDescription>
+          <CardDescription>부스 방문으로 모은 스탬프 개수</CardDescription>
         </StyledCardHeader>
 
         <NormalCardContent>
-          <ContributionBox>
-            <ContributionText>
-              {userProfile.grade}학년 {userProfile.class}반에 기여 중
-            </ContributionText>
-            <ContributionValue>
-              {userProfile.baseMileage.toLocaleString()}
-            </ContributionValue>
-            <ContributionHint>(배수 이벤트 마일리지는 제외)</ContributionHint>
-          </ContributionBox>
+          <StampBox>
+            <StampLeft>
+              <StampCount>
+                {stampLoading ? (
+                  <StampLoading>
+                    <Loader2 />
+                    불러오는 중...
+                  </StampLoading>
+                ) : (
+                  <>
+                    {stampCountFromVisits}
+                    <StampUnit>개</StampUnit>
+                  </>
+                )}
+              </StampCount>
+              <StampHint>방문 기록 기준으로 계산됩니다</StampHint>
+            </StampLeft>
+          </StampBox>
         </NormalCardContent>
       </Card>
 
@@ -189,16 +240,16 @@ const Page = styled.div`
 const HeaderBlock = styled.div``;
 
 const Title = styled.h1`
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 1.65rem;
+  font-weight: 800;
 `;
 
 const Subtitle = styled.p`
-  font-size: 14px;
-  color: var(--muted-foreground);
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.3);
 `;
 
-/** shadcn CardHeader / CardContent를 직접 styled로 감싸서 사용 */
 const StyledCardHeader = styled(CardHeader)`
   padding-bottom: 8px;
 `;
@@ -228,12 +279,14 @@ const Avatar = styled.div`
 `;
 
 const Name = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
 `;
 
 const Meta = styled.p`
   color: var(--muted-foreground);
+  font-size: 16px;
+  font-weight: 500;
 `;
 
 const InlineTitle = styled.span`
@@ -305,7 +358,6 @@ const InlineBadge = styled.span`
   font-size: 12px;
 `;
 
-/** Separator도 직접 styled로 감싸서 margin 부여 */
 const StyledSeparator = styled(Separator)`
   margin: 16px 0;
 `;
@@ -335,7 +387,58 @@ const ContributionHint = styled.p`
   color: var(--muted-foreground);
 `;
 
-/** outline 버튼 배경 투명 유지 + 폭 100% */
+const StampBox = styled.div`
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--muted) / 0.4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const StampLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const StampCount = styled.div`
+  font-size: 22px;
+  font-weight: 800;
+`;
+
+const StampUnit = styled.span`
+  margin-left: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+`;
+
+const StampHint = styled.p`
+  font-size: 12px;
+  color: var(--muted-foreground);
+`;
+
+const StampLoading = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+
+  svg {
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
 const LogoutButton = styled(Button)`
   && {
     width: 100%;
