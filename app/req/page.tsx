@@ -29,17 +29,25 @@ import {
   Loader2,
   PartyPopper,
   AlertTriangle,
+  Ban,
 } from "lucide-react";
 import { LoginScreen } from "@/components/login-screen";
+
+type Status =
+  | "loading"
+  | "success"
+  | "duplicate"
+  | "error"
+  | "invalid"
+  | "used"
+  | "disabled";
 
 function NFCHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, userProfile, loading, updateUserProfile } = useAuth();
 
-  const [status, setStatus] = useState<
-    "loading" | "success" | "duplicate" | "error" | "invalid" | "used"
-  >("loading");
+  const [status, setStatus] = useState<Status>("loading");
   const [boothName, setBoothName] = useState("");
 
   const boothIdx = searchParams.get("boothIdx");
@@ -51,7 +59,6 @@ function NFCHandler() {
   useEffect(() => {
     if (loading) return;
 
-    // boothIdx 없으면 invalid
     if (!boothIdx) {
       setStatus("invalid");
       return;
@@ -90,6 +97,22 @@ function NFCHandler() {
       try {
         setStatus("loading");
 
+        // ✅ (추가) NFC 사용 가능 여부 체크: liveConfig/nfc.enabled
+        {
+          const nfcCfgRef = doc(db, "liveConfig", "nfc");
+          const nfcCfgSnap = await getDoc(nfcCfgRef);
+
+          // 문서가 없거나 enabled가 true가 아니면 -> 기본 OFF
+          const enabled = nfcCfgSnap.exists()
+            ? Boolean((nfcCfgSnap.data() as any).enabled)
+            : false;
+
+          if (!enabled) {
+            setStatus("disabled");
+            return;
+          }
+        }
+
         // boothIdx로 booth 조회
         const boothQuery = query(
           collection(db, "booths"),
@@ -103,10 +126,10 @@ function NFCHandler() {
         }
 
         const boothDoc = boothSnapshot.docs[0];
-        const boothData = boothDoc.data();
+        const boothData = boothDoc.data() as any;
         const boothDocId = boothDoc.id;
 
-        setBoothName(boothData.name);
+        setBoothName(String(boothData.name ?? ""));
 
         // 방문 중복 체크
         const visitRef = doc(
@@ -186,7 +209,6 @@ function NFCHandler() {
     processVisit();
   }, [boothIdx, u, user, userProfile, loading, updateUserProfile]);
 
-  // 로딩
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -195,7 +217,6 @@ function NFCHandler() {
     );
   }
 
-  // 로그인 필요
   if (!user) return <LoginScreen />;
 
   return (
@@ -206,6 +227,29 @@ function NFCHandler() {
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
             <p>부스 방문 처리 중...</p>
           </CardContent>
+        )}
+
+        {status === "disabled" && (
+          <>
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+                <Ban className="w-10 h-10 text-slate-600" />
+              </div>
+              <CardTitle>아직 방문처리 시간이 아니에요</CardTitle>
+              <CardDescription>
+                NFC 방문처리가 현재 비활성화되어 있습니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push("/")}
+              >
+                홈으로 이동
+              </Button>
+            </CardContent>
+          </>
         )}
 
         {status === "success" && (
