@@ -98,21 +98,6 @@ function NFCHandler() {
         setStatus("loading");
 
         // ✅ (추가) NFC 사용 가능 여부 체크: liveConfig/nfc.enabled
-        {
-          const nfcCfgRef = doc(db, "liveConfig", "nfc");
-          const nfcCfgSnap = await getDoc(nfcCfgRef);
-
-          // 문서가 없거나 enabled가 true가 아니면 -> 기본 OFF
-          const enabled = nfcCfgSnap.exists()
-            ? Boolean((nfcCfgSnap.data() as any).enabled)
-            : false;
-
-          if (!enabled) {
-            setStatus("disabled");
-            return;
-          }
-        }
-
         // boothIdx로 booth 조회
         const boothQuery = query(
           collection(db, "booths"),
