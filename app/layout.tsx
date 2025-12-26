@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/contexts/auth-context";
 import { LiveVoteGate } from "@/components/live-vote/liveVoteGage";
 import "./globals.css";
+import { PresenceGate } from "@/components/presence/presenceGate";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -34,6 +35,7 @@ export default function RootLayout({
           {children}
           {/* ✅ 관리자 라우트에서는 자동으로 숨김 */}
           <LiveVoteGate />
+          <PresenceGate />
         </AuthProvider>
         <Analytics />
       </body>

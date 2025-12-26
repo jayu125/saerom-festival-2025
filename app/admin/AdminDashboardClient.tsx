@@ -17,8 +17,14 @@ import FinalizeAdminPage from "@/components/admin/FinalizePanel";
 import ManualTagPage from "@/components/admin/ManualTagPanel";
 import BoothImageUploadPage from "@/components/admin/BoothImagePanel";
 import WhitelistPage from "@/components/admin/WhitelistPanel";
+import PresencePanel from "@/components/admin/presencePanel";
 
-type TabKey = "finalize" | "manual-tag" | "booth-image" | "white-list";
+type TabKey =
+  | "finalize"
+  | "manual-tag"
+  | "booth-image"
+  | "white-list"
+  | "presence";
 
 const TABS: { key: TabKey; label: string; desc: string }[] = [
   {
@@ -29,6 +35,7 @@ const TABS: { key: TabKey; label: string; desc: string }[] = [
   { key: "manual-tag", label: "수동태그", desc: "NFC 없는 학생 방문 처리" },
   { key: "booth-image", label: "부스사진", desc: "부스 이미지 업로드/연결" },
   { key: "white-list", label: "화이트리스트", desc: "수동태그 대상 학생 등록" },
+  { key: "presence", label: "접속자", desc: "현재 접속중인 유저 수" },
 ];
 
 export default function AdminDashboardClient() {
@@ -81,6 +88,7 @@ export default function AdminDashboardClient() {
             {tab === "manual-tag" && <ManualTagPage />}
             {tab === "booth-image" && <BoothImageUploadPage />}
             {tab === "white-list" && <WhitelistPage />}
+            {tab === "presence" && <PresencePanel />}
           </CardContent>
         </Card>
 
