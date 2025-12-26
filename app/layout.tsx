@@ -4,8 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/contexts/auth-context";
 import { LiveVoteGate } from "@/components/live-vote/liveVoteGage";
+import { PresenceGate } from "@/components/presense/presenceGate";
 import "./globals.css";
-import { PresenceGate } from "@/components/presence/presenceGate";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });

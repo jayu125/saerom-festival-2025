@@ -12,6 +12,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
+import { get } from "firebase/database";
+
 type PresenceRow = {
   state?: "online" | "offline";
   lastChanged?: any;
@@ -23,6 +25,7 @@ type PresenceRow = {
 
 export default function PresencePanel() {
   const [rows, setRows] = useState<Record<string, PresenceRow>>({});
+  get(ref(rtdb, "presence")).then((s) => console.log("test", s.val()));
 
   useEffect(() => {
     const presenceRef = ref(rtdb, "presence");

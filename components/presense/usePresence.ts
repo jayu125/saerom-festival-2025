@@ -17,15 +17,6 @@ type PresenceMeta = {
   number?: number;
 };
 
-function cleanUndefined<T extends Record<string, any>>(obj?: T) {
-  if (!obj) return {};
-  const out: Record<string, any> = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
-}
-
 export function usePresence(uid?: string | null, meta?: PresenceMeta) {
   useEffect(() => {
     if (!uid) return;
@@ -33,28 +24,22 @@ export function usePresence(uid?: string | null, meta?: PresenceMeta) {
     const connectedRef = ref(rtdb, ".info/connected");
     const userRef = ref(rtdb, `presence/${uid}`);
 
-    const metaClean = cleanUndefined(meta);
-
     const unsub = onValue(connectedRef, (snap) => {
       if (snap.val() !== true) return;
 
-      const offlinePayload = {
-        state: "offline" as const,
+      // 끊기면 자동 offline
+      onDisconnect(userRef).set({
+        state: "offline",
         lastChanged: serverTimestamp(),
-        ...metaClean,
-      };
+        ...meta,
+      });
 
-      const onlinePayload = {
-        state: "online" as const,
+      // 연결되면 online
+      set(userRef, {
+        state: "online",
         lastChanged: serverTimestamp(),
-        ...metaClean,
-      };
-
-      // ✅ 끊기면 offline
-      onDisconnect(userRef).set(offlinePayload);
-
-      // ✅ 연결되면 online
-      set(userRef, onlinePayload);
+        ...meta,
+      });
     });
 
     return () => unsub();
