@@ -111,7 +111,7 @@ export default function AdminLiveVotePage() {
       round,
       candidates: [candidates[0].trim(), candidates[1].trim()],
       startedAt: serverTimestamp(),
-      duration: 30,
+      duration: 60,
       ended: false,
     });
 
